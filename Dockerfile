@@ -1,22 +1,32 @@
-# Use an official Node.js image as a base
+# 1️⃣ Build Stage: Build the React App using Vite
 FROM node:18-alpine AS build
 
-# Set working directory
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy package.json and install dependencies
+# Copy package.json and package-lock.json first (for better caching)
 COPY package.json package-lock.json ./
+
+# Install dependencies
 RUN npm install
 
-# Copy the rest of the application
+# Copy all files (source code, public folder, etc.)
 COPY . .
 
-# Build the React app
+# Build the project using Vite
 RUN npm run build
 
-# Use a lightweight Nginx server to serve the built files
+# 2️⃣ Serve Stage: Serve the built app using Nginx
 FROM nginx:alpine
-COPY --from=build /app/build /usr/share/nginx/html
+
+# Remove the default Nginx static files
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy the built files from the build stage to Nginx
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Expose port 80 for the container
 EXPOSE 80
 
+# Start Nginx
 CMD ["nginx", "-g", "daemon off;"]
