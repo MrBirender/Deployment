@@ -1,0 +1,35 @@
+name: Deploy React Vite App
+
+on:
+  push:
+    branches:
+      - main  # Runs when pushing to the main branch
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest  # Using GitHub Actions Runner
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Up Docker
+        run: |
+          curl -fsSL https://get.docker.com | bash
+          sudo systemctl start docker
+          sudo usermod -aG docker $USER
+
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+      - name: Build Docker Image
+        run: docker build -t devbirender/react-vite-app:latest .
+
+      - name: Push Docker Image to Docker Hub
+        run: docker push devbirender/react-vite-app:latest
+
+      - name: Run Docker Container
+        run: |
+          docker stop react-vite-app || true
+          docker rm react-vite-app || true
+          docker run -d -p 3000:3000 --name react-vite-app devbirender/react-vite-app:latest
